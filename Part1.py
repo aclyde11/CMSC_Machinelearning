@@ -8,12 +8,13 @@ import tabulate
 
 import matplotlib.pyplot as plt
 
+
 def print_heading(msg):
     width = len(msg) + 4
     for i in range(width):
         print("#", end='')
     print()
-    print ("# %s #" % msg)
+    print("# %s #" % msg)
     for i in range(width):
         print("#", end='')
     print()
@@ -44,7 +45,7 @@ def run_model_and_report_class_stats(X, Y, clf, CV=5):
         score_dict['f1'] = metrics.f1_score(Y[test_index], y_pred)
 
         scores = pd.concat([scores, pd.DataFrame([score_dict], columns=score_dict.keys())], sort=True)
-    return scores.reset_index().drop("index",axis=1)
+    return scores.reset_index().drop("index", axis=1)
 
 
 def part_a(X_all, X_coding, Y):
@@ -60,7 +61,7 @@ def part_a(X_all, X_coding, Y):
 
 
 def part_b(X_all, X_coding, Y):
-    from sklearn.neural_network import MLPClassifier
+    from sklearn.linear_model import LogisticRegression
     from sklearn.neighbors import KNeighborsClassifier
     from sklearn.svm import SVC
     from sklearn.gaussian_process import GaussianProcessClassifier
@@ -72,12 +73,13 @@ def part_b(X_all, X_coding, Y):
 
     # This list of classifers is stolen directly from the example on Sklearn "Classifcation comparison"
     # https://scikit-learn.org/stable/auto_examples/classification/plot_classifier_comparison.html
-    names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Gaussian Process",
+    names = ["Logistic Regression", "Nearest Neighbors", "Linear SVM", "RBF SVM", "Gaussian Process",
              "Decision Tree", "Random Forest", "AdaBoost",
              "Naive Bayes", "QDA"]
 
     classifiers = [
-        KNeighborsClassifier(3, n_jobs=-1),
+        LogisticRegression(n_jobs=-1),
+        KNeighborsClassifier(4, n_jobs=-1),
         SVC(kernel="linear"),
         SVC(kernel="rbf", gamma='auto'),
         GaussianProcessClassifier(1.0 * RBF(1.0), n_jobs=-1),
@@ -94,9 +96,7 @@ def part_b(X_all, X_coding, Y):
         score = score.sort_values("acc")
         score = score.iloc[0]
         scores.append(score)
-    df = pd.DataFrame(scores, index=names)
-    print(df)
-
+    print(tabulate.tabulate(pd.DataFrame(scores, index=names), headers='keys', tablefmt='psql'))
 
 
 def part_c(X_all, X_coding, Y):
@@ -117,9 +117,10 @@ def part_c(X_all, X_coding, Y):
     plt.plot(range(1, len(rfecv.grid_scores_) + 1), rfecv.grid_scores_)
     plt.show()
 
-    #TODO: print gene signature
+    # TODO: print gene signature
 
-def part_d(X_all, X_coding, Y):
+
+def part_d_run_model(X_all, X_coding, Y):
     from sklearn.model_selection import train_test_split
     from sklearn import metrics
     import keras
@@ -132,10 +133,10 @@ def part_d(X_all, X_coding, Y):
     x = Dense(100, activation='tanh', kernel_initializer='uniform')(x)
     x = Dense(2, activation='softmax', kernel_initializer='unifiorm')(x)
 
-    lr_sched = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, verbose=1, mode='auto', min_delta=0.001,
-                                 cooldown=0, min_lr=0)
+    lr_sched = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, verbose=1, mode='auto',
+                                                 min_delta=0.001,
+                                                 cooldown=0, min_lr=0)
     model = Model(inputs=input, outputs=x)
-    print(model.summary())
     model.compile(optimizer=keras.optimizers.SGD(lr=0.0001),
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
@@ -153,9 +154,16 @@ def part_d(X_all, X_coding, Y):
     score_dict['r2'] = metrics.r2_score(Y_test_int, Y_pred_int)
     score_dict['confusion'] = metrics.confusion_matrix(Y_test_int, Y_pred_int)
     score_dict['f1'] = metrics.f1_score(Y_test_int, Y_pred_int)
+    return score_dict
 
-    print(score_dict)
+def part_d(X_all, X_coding, Y):
 
+    learning_set_sizes = []
+    scores = []
+    for size in learning_set_sizes:
+        scores.append(part_d_run_model(X_all, X_coding, Y))
+
+    #TODO: plot learning curve
 
 
 if __name__ == "__main__":
@@ -171,14 +179,6 @@ if __name__ == "__main__":
         del Y_all
         del Y_coding
 
-    print_heading("PART A")
-    part_a(X_all, X_coding, Y)
-
-    print_heading("PART B")
-    part_b(X_all, X_coding, Y)
-
-    print_heading("PART C")
-    part_c(X_all, X_coding, Y)
-
-    print_heading("PART D")
-    part_d(X_all, X_coding, Y)
+    for part in 'abcd':
+        print_heading("PART %s" % part)
+        locals()["part_%s" % part](X_all, X_coding, Y)
