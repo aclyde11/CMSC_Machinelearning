@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import tabulate
 
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 
@@ -61,6 +62,7 @@ def part_a(X_all, X_coding, Y):
 
 
 def part_b(X_all, X_coding, Y):
+    from sklearn import preprocessing
     from sklearn.linear_model import LogisticRegression
     from sklearn.neighbors import KNeighborsClassifier
     from sklearn.svm import SVC
@@ -78,7 +80,7 @@ def part_b(X_all, X_coding, Y):
              "Naive Bayes", "QDA"]
 
     classifiers = [
-        LogisticRegression(n_jobs=-1),
+        LogisticRegression(),
         KNeighborsClassifier(4, n_jobs=-1),
         SVC(kernel="linear"),
         SVC(kernel="rbf", gamma='auto'),
@@ -90,20 +92,21 @@ def part_b(X_all, X_coding, Y):
         QuadraticDiscriminantAnalysis()]
 
     scores = []
-    for name, clf in zip(names, classifiers):
-        print(name)
-        score = run_model_and_report_class_stats(X_coding, Y, clf)
-        score = score.sort_values("acc")
-        score = score.iloc[0]
-        scores.append(score)
-    print(tabulate.tabulate(pd.DataFrame(scores, index=names), headers='keys', tablefmt='psql'))
+
+    print("Scaling coding data.")
+    X_coding_scaled = preprocessing.StandardScaler().fit_transform(X_coding)
+    print("Performing search through 10 different classifcations algos using X_coding...")
+    for name, clf in tqdm(zip(names, classifiers)):
+        score = run_model_and_report_class_stats(X_coding_scaled, Y, clf)
+        scores.append(score.sort_values("acc").iloc[0])
+    print(tabulate.tabulate(pd.DataFrame(scores, index=names).sort_values("acc"), headers='keys', tablefmt='psql'))
 
 
 def part_c(X_all, X_coding, Y):
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.feature_selection import mutual_info_classif, SelectKBest, RFECV
     from sklearn.model_selection import StratifiedKFold
-    X_reduced = SelectKBest(mutual_info_classif, k=100).fit_transform(X_coding, y)
+    X_reduced = SelectKBest(mutual_info_classif, k=100).fit_transform(X_coding, Y)
 
     clf = RandomForestClassifier(n_estimators=250, criterion='entropy', n_jobs=-1)
     # The "accuracy" scoring is proportional to the number of correct
@@ -156,14 +159,14 @@ def part_d_run_model(X_all, X_coding, Y):
     score_dict['f1'] = metrics.f1_score(Y_test_int, Y_pred_int)
     return score_dict
 
-def part_d(X_all, X_coding, Y):
 
+def part_d(X_all, X_coding, Y):
     learning_set_sizes = []
     scores = []
     for size in learning_set_sizes:
         scores.append(part_d_run_model(X_all, X_coding, Y))
 
-    #TODO: plot learning curve
+    # TODO: plot learning curve
 
 
 if __name__ == "__main__":
