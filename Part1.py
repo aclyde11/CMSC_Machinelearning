@@ -106,21 +106,22 @@ def part_c(X_all, X_coding, Y):
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.feature_selection import mutual_info_classif, SelectKBest, RFECV
     from sklearn.model_selection import StratifiedKFold
-    X_reduced = SelectKBest(mutual_info_classif, k=100).fit_transform(X_coding, Y)
 
-    clf = RandomForestClassifier(n_estimators=250, criterion='entropy', n_jobs=-1)
+    mi_sel =  SelectKBest(mutual_info_classif, k=100)
+    X_reduced = mi_sel.fit_transform(X_coding, Y)
+
+    clf = RandomForestClassifier(n_estimators=250, criterion='entropy', n_jobs=4)
     # The "accuracy" scoring is proportional to the number of correct
     # classifications
-    rfecv = RFECV(estimator=clf, step=2, cv=StratifiedKFold(5, shuffle=True), scoring='accuracy')
+    rfecv = RFECV(estimator=clf, step=1, cv=StratifiedKFold(2, shuffle=True), scoring='accuracy', n_jobs=2)
     rfecv.fit(X_reduced, Y)
     print("Optimal number of features : %d" % rfecv.n_features_)
     plt.figure()
     plt.xlabel("Number of features selected")
     plt.ylabel("Cross validation score (nb of correct classifications)")
     plt.plot(range(1, len(rfecv.grid_scores_) + 1), rfecv.grid_scores_)
+    plt.savefig('feature_sel.png')
     plt.show()
-
-    # TODO: print gene signature
 
 
 def part_d_run_model(X_all, X_coding, Y):
@@ -182,6 +183,6 @@ if __name__ == "__main__":
         del Y_all
         del Y_coding
 
-    for part in 'abcd':
+    for part in 'd':
         print_heading("PART %s" % part)
         locals()["part_%s" % part](X_all, X_coding, Y)
