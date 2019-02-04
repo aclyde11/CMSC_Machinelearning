@@ -11,14 +11,7 @@ import matplotlib.pyplot as plt
 
 def arg_setup():
     parser = argparse.ArgumentParser()
-
-    ##data
     parser.add_argument("--data", type=str)
-
-    ###############
-    # model setup #
-    ###############
-
     return parser.parse_args()
 
 def print_heading(msg):
@@ -178,6 +171,7 @@ def part_d_run_model(X_coding, Y, Y_holdout, X_holdout):
 
 def part_d(X_all, X_coding, Y):
     from sklearn import preprocessing
+    from sklearn.model_selection import StratifiedShuffleSplit
     from sklearn.model_selection import train_test_split
 
     print("Scaling coding data.")
@@ -187,12 +181,13 @@ def part_d(X_all, X_coding, Y):
     print("Testing 10 different training set sizes.")
     iters = 10
     scores = []
-    sizes = [int(X_train.shape[0] / 10) * i for i in range(1, iters + 1)]
+    sizes = np.geomspace(10, X_train.shape[1] - 10, num=iters, dtype=int)
     for size in sizes:
-        print ("Running training set size: %i" % (size))
-        indexes = np.random.randint(low=0, high=X_train.shape[0], size=size)
-        X_sub = X_train[indexes, :]
-        Y_sub = y_train[indexes]
+        print("Running size %i" % size)
+        sss = StratifiedShuffleSplit(n_splits=1, train_size=size-1, random_state=42)
+        train_index, _ = list(sss.split(X_train, y_train))[0]
+        X_sub = X_train[train_index,:]
+        Y_sub = y_train[train_index]
         scores.append(part_d_run_model(X_sub, Y_sub, y_test, X_test))
 
     df = pd.DataFrame(scores)
