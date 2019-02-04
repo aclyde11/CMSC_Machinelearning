@@ -5,10 +5,21 @@ import sys
 import pandas as pd
 import numpy as np
 import tabulate
-
+import argparse
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
+def arg_setup():
+    parser = argparse.ArgumentParser()
+
+    ##data
+    parser.add_argument("--data", type=str)
+
+    ###############
+    # model setup #
+    ###############
+
+    return parser.parse_args()
 
 def print_heading(msg):
     width = len(msg) + 4
@@ -56,7 +67,7 @@ def part_a(X_all, X_coding, Y):
     print("No normalization or scaling is applied (RF doesn't need it).")
     for X, type in [(X_all, 'all'), (X_coding, 'coding')]:
         print("Using %s as input features." % type)
-        clf = RandomForestClassifier(n_estimators=500, criterion='entropy', n_jobs=-1)
+        clf = RandomForestClassifier(n_estimators=250, criterion='entropy', n_jobs=-1)
         scores = run_model_and_report_class_stats(X, Y, clf)
         print(tabulate.tabulate(scores, headers='keys', tablefmt='psql'))
 
@@ -124,7 +135,7 @@ def part_c(X_all, X_coding, Y):
     plt.show()
 
 
-def part_d_run_model(X_all, X_coding, Y):
+def part_d_run_model(X_coding, Y):
     from sklearn.model_selection import train_test_split
     from sklearn import metrics
     import keras
@@ -135,23 +146,23 @@ def part_d_run_model(X_all, X_coding, Y):
     x = Dense(100, activation='tanh', kernel_initializer='uniform')(input)
     x = Dense(100, activation='tanh', kernel_initializer='uniform')(x)
     x = Dense(100, activation='tanh', kernel_initializer='uniform')(x)
-    x = Dense(2, activation='softmax', kernel_initializer='unifiorm')(x)
+    x = Dense(1, activation='sigmoid', kernel_initializer='uniform')(x)
 
     lr_sched = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, verbose=1, mode='auto',
                                                  min_delta=0.001,
                                                  cooldown=0, min_lr=0)
     model = Model(inputs=input, outputs=x)
     model.compile(optimizer=keras.optimizers.SGD(lr=0.0001),
-                  loss='categorical_crossentropy',
+                  loss='binary_crossentropy',
                   metrics=['accuracy'])
 
-    X_train, X_train, X_test, y_test = train_test_split(X_coding, Y, stratify=Y)
-    model.fit(X_train, X_train, validation_data=[X_test, y_test], epochs=100, callbacks=[lr_sched], batch_size=32)
+    X_train, X_test, y_train, y_test = train_test_split(X_coding, Y, stratify=Y, train_size=0.8)
+    model.fit(X_train, y_train, validation_data=[X_test, y_test], epochs=100, callbacks=[lr_sched], batch_size=32)
 
     Y_predict = model.predict(X_test)
     threshold = 0.5
-    Y_pred_int = (Y_predict[:, 0] < threshold).astype(np.int)
-    Y_test_int = (y_test[:, 0] < threshold).astype(np.int)
+    Y_pred_int = (Y_predict < threshold).astype(np.int)
+    Y_test_int = (y_test < threshold).astype(np.int)
 
     score_dict = {}
     score_dict['acc'] = metrics.accuracy_score(Y_test_int, Y_pred_int)
@@ -162,17 +173,22 @@ def part_d_run_model(X_all, X_coding, Y):
 
 
 def part_d(X_all, X_coding, Y):
-    learning_set_sizes = []
+    iters = 10
     scores = []
-    for size in learning_set_sizes:
-        scores.append(part_d_run_model(X_all, X_coding, Y))
+    for i in range(1, iters + 1):
+        size = int(X_coding.shape[0] / 10) * i
+        indexes = np.random.randint(low=0, high=X_coding.shape[0], size=size)
+        X_sub = X_coding[indexes, :]
+        Y_sub = Y[indexes]
+        scores.append(part_d_run_model(X_sub, Y_sub))
 
-    # TODO: plot learning curve
+    print(tabulate.tabulate(pd.DataFrame(scores).sort_values("acc"), headers='keys', tablefmt='psql'))
 
 
 if __name__ == "__main__":
-    X_coding, Y_coding = load_data("/Volumes/ExternalClyde/machine_learning_for_cancer_work/hw1/nt.coding.csv")
-    X_all, Y_all = load_data("/Volumes/ExternalClyde/machine_learning_for_cancer_work/hw1/nt.all.csv")
+    args = arg_setup()
+    X_coding, Y_coding = load_data(args.data + "nt.coding.csv")
+    X_all, Y_all = load_data(args.data + "nt.all.csv")
 
     Y = None
     if np.all(Y_all != Y_coding):
