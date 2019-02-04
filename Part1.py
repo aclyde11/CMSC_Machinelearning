@@ -136,8 +136,8 @@ def part_d_run_model(X_coding, Y, Y_holdout, X_holdout):
     from keras.models import Model
 
     input = Input((X_coding.shape[1],))
-    x = Dense(30, activation='relu', kernel_initializer='uniform')(input)
-    x = Dense(30, activation='relu', kernel_initializer='uniform')(x)
+    x = Dense(50, activation='relu', kernel_initializer='uniform')(input)
+    x = Dense(40, activation='relu', kernel_initializer='uniform')(x)
     x = Dense(10, activation='relu', kernel_initializer='uniform')(x)
     x = Dense(2, activation='softmax', kernel_initializer='uniform')(x)
 
@@ -176,15 +176,15 @@ def part_d(X_all, X_coding, Y):
 
     print("Scaling coding data.")
     X_coding_scaled = preprocessing.StandardScaler().fit_transform(X_coding)
-    X_train, X_test, y_train, y_test = train_test_split(X_coding_scaled, Y, stratify=Y, train_size=0.8)
+    X_train, X_test, y_train, y_test = train_test_split(X_coding_scaled, Y, stratify=Y, train_size=0.7)
 
     print("Testing 10 different training set sizes.")
-    iters = 10
+    iters = 40
     scores = []
-    sizes = np.geomspace(10, X_train.shape[1] - 10, num=iters, dtype=int)
+    sizes = np.geomspace(10, X_train.shape[0] - 10, num=iters, dtype=int)
     for size in sizes:
         print("Running size %i" % size)
-        sss = StratifiedShuffleSplit(n_splits=1, train_size=size-1, random_state=42)
+        sss = StratifiedShuffleSplit(n_splits=1, train_size=size-2, test_size=2,random_state=42)
         train_index, _ = list(sss.split(X_train, y_train))[0]
         X_sub = X_train[train_index,:]
         Y_sub = y_train[train_index]
