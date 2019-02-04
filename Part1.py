@@ -131,11 +131,11 @@ def part_c(X_all, X_coding, Y):
     plt.xlabel("Number of features selected")
     plt.ylabel("Cross validation score (nb of correct classifications)")
     plt.plot(range(1, len(rfecv.grid_scores_) + 1), rfecv.grid_scores_)
-    plt.savefig('feature_sel.png')
+    plt.savefig('part1_c_feature_sel.png')
     plt.show()
 
 
-def part_d_run_model(X_coding, Y):
+def part_d_run_model(X_coding, Y, Y_holdout, X_holdout):
     from sklearn.model_selection import train_test_split
     from sklearn import metrics
     import keras
@@ -143,26 +143,30 @@ def part_d_run_model(X_coding, Y):
     from keras.models import Model
 
     input = Input((X_coding.shape[1],))
-    x = Dense(100, activation='tanh', kernel_initializer='uniform')(input)
-    x = Dense(100, activation='tanh', kernel_initializer='uniform')(x)
-    x = Dense(100, activation='tanh', kernel_initializer='uniform')(x)
-    x = Dense(1, activation='sigmoid', kernel_initializer='uniform')(x)
+    x = Dense(30, activation='relu', kernel_initializer='uniform')(input)
+    x = Dense(30, activation='relu', kernel_initializer='uniform')(x)
+    x = Dense(10, activation='relu', kernel_initializer='uniform')(x)
+    x = Dense(2, activation='softmax', kernel_initializer='uniform')(x)
 
-    lr_sched = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, verbose=1, mode='auto',
+    lr_sched = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, verbose=0, mode='auto',
                                                  min_delta=0.001,
                                                  cooldown=0, min_lr=0)
     model = Model(inputs=input, outputs=x)
-    model.compile(optimizer=keras.optimizers.SGD(lr=0.0001),
-                  loss='binary_crossentropy',
+    model.compile(optimizer=keras.optimizers.SGD(lr=0.001, momentum=0.9, nesterov=True),
+                  loss='categorical_crossentropy',
                   metrics=['accuracy'])
 
     X_train, X_test, y_train, y_test = train_test_split(X_coding, Y, stratify=Y, train_size=0.8)
-    model.fit(X_train, y_train, validation_data=[X_test, y_test], epochs=100, callbacks=[lr_sched], batch_size=32)
+    y_train = keras.utils.to_categorical(y_train, 2)
+    y_test = keras.utils.to_categorical(y_test, 2)
+    model.fit(X_train, y_train, validation_data=[X_test, y_test], epochs=100, callbacks=[lr_sched], batch_size=32, verbose=0)
 
-    Y_predict = model.predict(X_test)
+    Y_predict = model.predict(X_holdout)
+    Y_holdout = keras.utils.to_categorical(Y_holdout, 2)
+
     threshold = 0.5
-    Y_pred_int = (Y_predict < threshold).astype(np.int)
-    Y_test_int = (y_test < threshold).astype(np.int)
+    Y_pred_int = (Y_predict[:, 0] < threshold).astype(np.int)
+    Y_test_int = (Y_holdout[:, 0] < threshold).astype(np.int)
 
     score_dict = {}
     score_dict['acc'] = metrics.accuracy_score(Y_test_int, Y_pred_int)
@@ -173,16 +177,32 @@ def part_d_run_model(X_coding, Y):
 
 
 def part_d(X_all, X_coding, Y):
+    from sklearn import preprocessing
+    from sklearn.model_selection import train_test_split
+
+    print("Scaling coding data.")
+    X_coding_scaled = preprocessing.StandardScaler().fit_transform(X_coding)
+    X_train, X_test, y_train, y_test = train_test_split(X_coding_scaled, Y, stratify=Y, train_size=0.8)
+
+    print("Testing 10 different training set sizes.")
     iters = 10
     scores = []
-    for i in range(1, iters + 1):
-        size = int(X_coding.shape[0] / 10) * i
-        indexes = np.random.randint(low=0, high=X_coding.shape[0], size=size)
-        X_sub = X_coding[indexes, :]
-        Y_sub = Y[indexes]
-        scores.append(part_d_run_model(X_sub, Y_sub))
+    sizes = [int(X_train.shape[0] / 10) * i for i in range(1, iters + 1)]
+    for size in sizes:
+        print ("Running training set size: %i" % (size))
+        indexes = np.random.randint(low=0, high=X_train.shape[0], size=size)
+        X_sub = X_train[indexes, :]
+        Y_sub = y_train[indexes]
+        scores.append(part_d_run_model(X_sub, Y_sub, y_test, X_test))
 
-    print(tabulate.tabulate(pd.DataFrame(scores).sort_values("acc"), headers='keys', tablefmt='psql'))
+    df = pd.DataFrame(scores)
+    print(tabulate.tabulate(df, headers='keys', tablefmt='psql'))
+    plt.plot(sizes, df['acc'])
+    plt.xlabel("Size of training set")
+    plt.ylabel("Accuracy on holdout")
+    plt.title("Learning Curve for NT Problem")
+    plt.savefig('part1_d_learning_curve.png')
+    plt.show()
 
 
 if __name__ == "__main__":
