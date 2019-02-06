@@ -129,30 +129,24 @@ def part_c(X_all, X_coding, Y):
 
 
 def part_d_run_model(X_coding, Y, Y_holdout, X_holdout):
-    from sklearn.model_selection import train_test_split
     from sklearn import metrics
     import keras
     from keras.layers import Input, Dense, Dropout
     from keras.models import Model
 
     input = Input((X_coding.shape[1],))
-    x = Dense(50, activation='relu', kernel_initializer='uniform')(input)
-    x = Dense(40, activation='relu', kernel_initializer='uniform')(x)
-    x = Dense(10, activation='relu', kernel_initializer='uniform')(x)
+    x = Dense(100, activation='relu', kernel_initializer='uniform')(input)
+    x = Dense(50, activation='relu', kernel_initializer='uniform')(x)
+    x = Dense(50, activation='relu', kernel_initializer='uniform')(x)
     x = Dense(2, activation='softmax', kernel_initializer='uniform')(x)
 
-    lr_sched = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, verbose=0, mode='auto',
-                                                 min_delta=0.001,
-                                                 cooldown=0, min_lr=0)
     model = Model(inputs=input, outputs=x)
-    model.compile(optimizer=keras.optimizers.SGD(lr=0.001, momentum=0.9, nesterov=True),
+    model.compile(optimizer=keras.optimizers.SGD(lr=0.0005, momentum=0.9, nesterov=True),
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
 
-    X_train, X_test, y_train, y_test = train_test_split(X_coding, Y, stratify=Y, train_size=0.8)
-    y_train = keras.utils.to_categorical(y_train, 2)
-    y_test = keras.utils.to_categorical(y_test, 2)
-    model.fit(X_train, y_train, validation_data=[X_test, y_test], epochs=100, callbacks=[lr_sched], batch_size=32, verbose=0)
+    y_train = keras.utils.to_categorical(Y, 2)
+    model.fit(X_coding, y_train, validation_split=0, epochs=50, batch_size=32, verbose=0)
 
     Y_predict = model.predict(X_holdout)
     Y_holdout = keras.utils.to_categorical(Y_holdout, 2)
@@ -168,6 +162,16 @@ def part_d_run_model(X_coding, Y, Y_holdout, X_holdout):
     score_dict['f1'] = metrics.f1_score(Y_test_int, Y_pred_int)
     return score_dict
 
+def part_1_ec(X_all, X_coding, Y):
+    from tpot import TPOTClassifier
+    from sklearn.model_selection import train_test_split
+    pipeline_optimizer = TPOTClassifier(generations=5, population_size=20, cv=5,n_jobs=4,
+                                        random_state=42, verbosity=2, max_time_mins=60)
+
+    X_train, X_test, y_train, y_test = train_test_split(X_coding, Y, stratify=Y, random_state=42)
+    pipeline_optimizer.fit(X_train, y_train)
+    print(pipeline_optimizer.score(X_test, y_test))
+
 
 def part_d(X_all, X_coding, Y):
     from sklearn import preprocessing
@@ -176,15 +180,15 @@ def part_d(X_all, X_coding, Y):
 
     print("Scaling coding data.")
     X_coding_scaled = preprocessing.StandardScaler().fit_transform(X_coding)
-    X_train, X_test, y_train, y_test = train_test_split(X_coding_scaled, Y, stratify=Y, train_size=0.7)
+    X_train, X_test, y_train, y_test = train_test_split(X_coding_scaled, Y, stratify=Y, train_size=0.65)
 
     print("Testing 10 different training set sizes.")
-    iters = 40
+    iters = 15
     scores = []
-    sizes = np.geomspace(10, X_train.shape[0] - 10, num=iters, dtype=int)
+    sizes = np.linspace(35, X_train.shape[0] - 10, num=iters, dtype=int)
     for size in sizes:
         print("Running size %i" % size)
-        sss = StratifiedShuffleSplit(n_splits=1, train_size=size-2, test_size=2,random_state=42)
+        sss = StratifiedShuffleSplit(n_splits=1, train_size=size-2, test_size=2,random_state=30)
         train_index, _ = list(sss.split(X_train, y_train))[0]
         X_sub = X_train[train_index,:]
         Y_sub = y_train[train_index]
@@ -214,6 +218,7 @@ if __name__ == "__main__":
         del Y_all
         del Y_coding
 
-    for part in 'd':
-        print_heading("PART %s" % part)
-        locals()["part_%s" % part](X_all, X_coding, Y)
+    # for part in 'abcd':
+    #     print_heading("PART %s" % part)
+    #     locals()["part_%s" % part](X_all, X_coding, Y)
+    part_1_ec(X_all, X_coding, Y)
