@@ -124,7 +124,7 @@ def part_c(X_all, X_coding, Y):
     plt.xlabel("Number of features selected")
     plt.ylabel("Cross validation score (nb of correct classifications)")
     plt.plot(range(1, len(rfecv.grid_scores_) + 1), rfecv.grid_scores_)
-    plt.savefig('part1_c_feature_sel.png')
+    plt.savefig('part2_c_feature_sel.png')
     plt.show()
 
 
@@ -190,7 +190,7 @@ def part_d(X_all, X_coding, Y):
     plt.xlabel("Size of training set")
     plt.ylabel("Accuracy on holdout")
     plt.title("Learning Curve for NT Problem")
-    plt.savefig('part1_d_learning_curve.png')
+    plt.savefig('part2_d_learning_curve.png')
     plt.show()
 
 def part_1_ec(X_all, X_coding, Y):
