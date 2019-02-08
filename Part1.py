@@ -196,8 +196,8 @@ def part_d(X_all, X_coding, Y):
 def part_1_ec(X_all, X_coding, Y):
     from tpot import TPOTClassifier
     from sklearn.model_selection import train_test_split
-    pipeline_optimizer = TPOTClassifier(generations=5, population_size=20, cv=5,n_jobs=4,
-                                        random_state=42, verbosity=2, max_time_mins=60)
+    pipeline_optimizer = TPOTClassifier(generations=5, population_size=20, cv=5,n_jobs=16,
+                                        random_state=42, verbosity=2, max_time_mins=180)
 
     X_train, X_test, y_train, y_test = train_test_split(X_coding, Y, stratify=Y, random_state=42)
     pipeline_optimizer.fit(X_train, y_train)
