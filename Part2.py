@@ -111,17 +111,17 @@ def part_c(X_all, X_coding, Y):
     mi_sel =  SelectKBest(mutual_info_classif, k=100)
     X_reduced = mi_sel.fit_transform(X_coding, Y)
 
-    clf = RandomForestClassifier(n_estimators=250, criterion='entropy', n_jobs=4)
+    clf = RandomForestClassifier(n_estimators=250, criterion='entropy', n_jobs=8)
     # The "accuracy" scoring is proportional to the number of correct
     # classifications
-    rfecv = RFECV(estimator=clf, step=1, cv=StratifiedKFold(2, shuffle=True), scoring='accuracy', n_jobs=2)
+    rfecv = RFECV(estimator=clf, step=1, cv=StratifiedKFold(2, shuffle=True), scoring='accuracy', n_jobs=4)
     rfecv.fit(X_reduced, Y)
     print("Optimal number of features : %d" % rfecv.n_features_)
     plt.figure()
     plt.xlabel("Number of features selected")
     plt.ylabel("Cross validation score (nb of correct classifications)")
     plt.plot(range(1, len(rfecv.grid_scores_) + 1), rfecv.grid_scores_)
-    plt.savefig('part1_c_feature_sel.png')
+    plt.savefig('part2_c_feature_sel.png')
     plt.show()
 
 
@@ -188,7 +188,7 @@ def part_d(X_all, X_coding, Y):
     plt.xlabel("Size of training set")
     plt.ylabel("Accuracy on holdout")
     plt.title("Learning Curve for NT Problem")
-    plt.savefig('part1_d_learning_curve.png')
+    plt.savefig('part2_d_learning_curve.png')
     plt.show()
 
 
