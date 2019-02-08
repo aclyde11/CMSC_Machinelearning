@@ -218,7 +218,7 @@ if __name__ == "__main__":
         del Y_all
         del Y_coding
 
-    # for part in 'abcd':
-    #     print_heading("PART %s" % part)
-    #     locals()["part_%s" % part](X_all, X_coding, Y)
+    for part in 'abcd':
+        print_heading("PART %s" % part)
+        locals()["part_%s" % part](X_all, X_coding, Y)
     part_1_ec(X_all, X_coding, Y)
