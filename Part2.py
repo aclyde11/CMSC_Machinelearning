@@ -7,7 +7,11 @@ import numpy as np
 import tabulate
 import argparse
 from tqdm import tqdm
+
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+
 
 def arg_setup():
     parser = argparse.ArgumentParser()
@@ -143,11 +147,11 @@ def part_d_run_model(X_coding, Y, Y_holdout, X_holdout):
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
 
-    y_train = keras.utils.to_categorical(Y, 2)
+    y_train = keras.utils.to_categorical(Y, 16)
     model.fit(X_coding, y_train, validation_split=0, epochs=50, batch_size=32, verbose=0)
 
     Y_predict = model.predict(X_holdout)
-    Y_holdout = keras.utils.to_categorical(Y_holdout, 2)
+    Y_holdout = keras.utils.to_categorical(Y_holdout, 18)
 
     threshold = 0.5
     Y_pred_int = (Y_predict[:, 0] < threshold).astype(np.int)
@@ -173,10 +177,10 @@ def part_d(X_all, X_coding, Y):
     print("Testing 10 different training set sizes.")
     iters = 15
     scores = []
-    sizes = np.linspace(35, X_train.shape[0] - 10, num=iters, dtype=int)
+    sizes = np.linspace(50, X_train.shape[0] - 10, num=iters, dtype=int)
     for size in sizes:
         print("Running size %i" % size)
-        sss = StratifiedShuffleSplit(n_splits=1, train_size=size-2, test_size=2,random_state=30)
+        sss = StratifiedShuffleSplit(n_splits=1, train_size=size-19, test_size=19,random_state=30)
         train_index, _ = list(sss.split(X_train, y_train))[0]
         X_sub = X_train[train_index,:]
         Y_sub = y_train[train_index]
@@ -208,6 +212,6 @@ if __name__ == "__main__":
         del Y_all
         del Y_coding
 
-    for part in 'bcd':
+    for part in 'd':
         print_heading("PART %s" % part)
         locals()["part_%s" % part](X_all, X_coding, Y)

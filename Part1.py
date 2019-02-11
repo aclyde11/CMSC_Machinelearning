@@ -7,7 +7,11 @@ import numpy as np
 import tabulate
 import argparse
 from tqdm import tqdm
+
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+
 
 def arg_setup():
     parser = argparse.ArgumentParser()
@@ -164,6 +168,7 @@ def part_d_run_model(X_coding, Y, Y_holdout, X_holdout):
 
 
 def part_d(X_all, X_coding, Y):
+    # TODO: Implement CV for accuacy score.... otherwise plot is bad
     from sklearn import preprocessing
     from sklearn.model_selection import StratifiedShuffleSplit
     from sklearn.model_selection import train_test_split
@@ -218,6 +223,7 @@ if __name__ == "__main__":
         del Y_all
         del Y_coding
 
+    print("PART 1: Normal versus Tumor Predictions")
     for part in 'abcd':
         print_heading("PART %s" % part)
         locals()["part_%s" % part](X_all, X_coding, Y)
